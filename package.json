@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "build-libs": "browserify --standalone bitcoin -o public/bitcoinjs-lib.js <<< \"module.exports = require('bitcoinjs-lib');\""
+    "build-libs": "browserify browserify-input.js --standalone bitcoin -o public/bitcoinjs-lib.js"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.1",

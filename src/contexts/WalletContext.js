@@ -1,4 +1,3 @@
-// src/contexts/WalletContext.jsx
 import { h, createContext } from 'preact';
 import { useState, useEffect, useContext } from 'preact/hooks';
 import walletService from '../services/walletService';
@@ -13,7 +12,8 @@ export function WalletProvider({ children }) {
     exists: false,
     isNew: false,
     loading: true,
-    error: null
+    error: null,
+    mnemonic: null // Store mnemonic in state (for educational purposes)
   });
 
   // Initialize wallet on component mount
@@ -31,7 +31,8 @@ export function WalletProvider({ children }) {
             exists: true,
             isNew,
             loading: false,
-            error: null
+            error: null,
+            mnemonic
           });
         } else {
           // No wallet exists yet, just update state
@@ -40,7 +41,8 @@ export function WalletProvider({ children }) {
             exists: false,
             isNew: false,
             loading: false,
-            error: null
+            error: null,
+            mnemonic: null
           });
         }
       } catch (error) {
@@ -66,7 +68,8 @@ export function WalletProvider({ children }) {
         exists: true,
         isNew,
         loading: false,
-        error: null
+        error: null,
+        mnemonic
       });
       return true;
     } catch (error) {
@@ -80,10 +83,55 @@ export function WalletProvider({ children }) {
     }
   };
 
+  // Function to derive HD node from mnemonic
+  const getHDNode = () => {
+    try {
+      if (!walletState.mnemonic) {
+        throw new Error('Wallet not initialized');
+      }
+      return walletService.deriveHDNode(walletState.mnemonic);
+    } catch (error) {
+      console.error('Failed to get HD node:', error);
+      setWalletState(prevState => ({
+        ...prevState,
+        error: error.message
+      }));
+      throw error;
+    }
+  };
+
+  // Function to derive address at index
+  const deriveAddress = (index) => {
+    try {
+      const hdNode = getHDNode();
+      const childNode = walletService.deriveAddressNode(hdNode, index);
+      return {
+        address: walletService.getAddressFromNode(childNode),
+        privateKey: walletService.getPrivateKeyFromNode(childNode),
+        path: `m/44'/1'/0'/0/${index}`,
+        index
+      };
+    } catch (error) {
+      console.error(`Failed to derive address at index ${index}:`, error);
+      setWalletState(prevState => ({
+        ...prevState,
+        error: error.message
+      }));
+      throw error;
+    }
+  };
+
   // Value to be provided by the context
   const contextValue = {
     ...walletState,
-    createWallet
+    createWallet,
+    getHDNode,
+    deriveAddress,
+    // Expose underlying HD wallet functions for advanced usage
+    deriveHDNode: walletService.deriveHDNode,
+    deriveAddressNode: walletService.deriveAddressNode,
+    getAddressFromNode: walletService.getAddressFromNode,
+    getPrivateKeyFromNode: walletService.getPrivateKeyFromNode
   };
 
   return (
